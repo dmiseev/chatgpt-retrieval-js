@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import readline from 'readline';
-import { OpenAI } from "langchain/llms/openai";
+import { ChatOpenAI } from "langchain/chat_models/openai";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
@@ -32,7 +32,7 @@ async function setupLLMChain() {
     console.log("Documents stored to memory vector store.");
 
     console.log("Creating retrieval chain...");
-    const model = new OpenAI({
+    const model = new ChatOpenAI({
         modelName: 'gpt-3.5-turbo',
         openAIApiKey: process.env.OPENAI_API_KEY,
         temperature: 0,
