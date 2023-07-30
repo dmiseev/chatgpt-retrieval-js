@@ -9,7 +9,7 @@ npm install
 ```
 Modify `.env.dist` to use your own [OpenAI API key](https://platform.openai.com/account/api-keys), and rename it to `.env`.
 
-Place your own files (`.txt`, `.csv`, `json`) in the `data/` folder.
+Place your own files (`.txt`, `.csv`, `.json`, `.md`) in the `data/` folder.
 
 ## Example usage
 
