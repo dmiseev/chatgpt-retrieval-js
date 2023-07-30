@@ -9,6 +9,7 @@ import { DirectoryLoader } from "langchain/document_loaders/fs/directory";
 import { JSONLoader } from "langchain/document_loaders/fs/json";
 import { TextLoader } from "langchain/document_loaders/fs/text";
 import { CSVLoader } from "langchain/document_loaders/fs/csv";
+import { NotionLoader } from "langchain/document_loaders/fs/notion";
 
 // Entry point of the application
 async function main() {
@@ -20,7 +21,9 @@ async function main() {
 // Load documents to LLM and create a retrieval chain
 async function setupLLMChain() {
     console.log("Loading documents...");
-    const docs = await loadDocuments();
+    const plainDocs = await loadPlainDocuments();
+    const markdownDocs = await loadMarkdownDocuments();
+    const docs = [...plainDocs, ...markdownDocs];
     console.log("Documents loaded.");
 
     console.log("Splitting documents...");
@@ -42,7 +45,7 @@ async function setupLLMChain() {
 }
 
 // Load documents from the specified directory
-async function loadDocuments() {
+async function loadPlainDocuments() {
     const loader = new DirectoryLoader("./data", {
         ".json": (path) => new JSONLoader(path),
         ".txt": (path) => new TextLoader(path),
@@ -50,6 +53,14 @@ async function loadDocuments() {
     });
 
     return loader.load();
+}
+
+// Load markdown documents from the specified directory
+async function loadMarkdownDocuments() {
+    const directoryPath = "./data";
+    const loader = new NotionLoader(directoryPath);
+
+    return await loader.load();
 }
 
 // Split documents using the text splitter
