@@ -1,15 +1,23 @@
 import 'dotenv/config';
 import readline from 'readline';
+import fs from "fs";
+import path from "path";
 import { ChatOpenAI } from "langchain/chat_models/openai";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { MemoryVectorStore } from "langchain/vectorstores/memory";
 import { RetrievalQAChain } from "langchain/chains";
-import { DirectoryLoader } from "langchain/document_loaders/fs/directory";
+import { DirectoryLoader, UnknownHandling } from "langchain/document_loaders/fs/directory";
 import { JSONLoader } from "langchain/document_loaders/fs/json";
 import { TextLoader } from "langchain/document_loaders/fs/text";
 import { CSVLoader } from "langchain/document_loaders/fs/csv";
 import { NotionLoader } from "langchain/document_loaders/fs/notion";
+import { PDFLoader } from "langchain/document_loaders/fs/pdf";
+
+// Constants
+const DATA_DIR = "./data";
+const OPENAI_API_MODEL_NAME = 'gpt-3.5-turbo';
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 // Entry point of the application
 async function main() {
@@ -23,7 +31,8 @@ async function setupLLMChain() {
     console.log("Loading documents...");
     const plainDocs = await loadPlainDocuments();
     const markdownDocs = await loadMarkdownDocuments();
-    const docs = [...plainDocs, ...markdownDocs];
+    const pdfDocs = await loadPdfDocuments();
+    const docs = [...plainDocs, ...markdownDocs, ...pdfDocs];
     console.log("Documents loaded.");
 
     console.log("Splitting documents...");
@@ -36,31 +45,46 @@ async function setupLLMChain() {
 
     console.log("Creating retrieval chain...");
     const model = new ChatOpenAI({
-        modelName: 'gpt-3.5-turbo',
-        openAIApiKey: process.env.OPENAI_API_KEY,
+        modelName: OPENAI_API_MODEL_NAME,
+        openAIApiKey: OPENAI_API_KEY,
         temperature: 0,
     });
 
-    return RetrievalQAChain.fromLLM(model, vectorStore.asRetriever());
+    return RetrievalQAChain.fromLLM(model, vectorStore.asRetriever(), {
+        returnSourceDocuments: true,
+    });
 }
 
 // Load documents from the specified directory
 async function loadPlainDocuments() {
-    const loader = new DirectoryLoader("./data", {
+    const loader = new DirectoryLoader(DATA_DIR, {
         ".json": (path) => new JSONLoader(path),
         ".txt": (path) => new TextLoader(path),
         ".csv": (path) => new CSVLoader(path),
-    });
+    }, true, UnknownHandling.Ignore);
 
     return loader.load();
 }
 
 // Load markdown documents from the specified directory
 async function loadMarkdownDocuments() {
-    const directoryPath = "./data";
-    const loader = new NotionLoader(directoryPath);
+    const loader = new NotionLoader(DATA_DIR);
 
     return await loader.load();
+}
+
+// Load PDF documents from the specified directory
+async function loadPdfDocuments() {
+    let pdfs = [];
+    const fileNames = scanForPDFs(DATA_DIR);
+
+    for (const fileName of fileNames) {
+        const loader = new PDFLoader(`${fileName}`);
+        const pdfDocs = await loader.load();
+        pdfs = [...pdfs, ...pdfDocs];
+    }
+
+    return pdfs;
 }
 
 // Split documents using the text splitter
@@ -106,10 +130,34 @@ async function endlessLoop(chain) {
             });
 
             console.log('\x1b[32mAI answered:\x1b[0m', `${response.text}`);
+            console.log('\x1b[32mSource Document:\x1b[0m', `${response.sourceDocuments[0].metadata.source}`);
         } catch (error) {
             console.error('An error occurred:', error);
         }
     }
+}
+
+// Function to recursively scan a directory for PDF files
+function scanForPDFs(directory) {
+    const pdfFiles = [];
+
+    function scanDir(dir) {
+        const files = fs.readdirSync(dir);
+
+        for (const file of files) {
+            const filePath = path.join(dir, file);
+            const stats = fs.statSync(filePath);
+
+            if (stats.isFile() && path.extname(file).toLowerCase() === '.pdf') {
+                pdfFiles.push(filePath);
+            } else if (stats.isDirectory()) {
+                scanDir(filePath);
+            }
+        }
+    }
+
+    scanDir(directory);
+    return pdfFiles;
 }
 
 // Start the application
