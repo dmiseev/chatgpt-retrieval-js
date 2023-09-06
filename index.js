@@ -16,7 +16,8 @@ import { PDFLoader } from "langchain/document_loaders/fs/pdf";
 
 // Constants
 const DATA_DIR = "./data";
-const OPENAI_API_MODEL_NAME = 'gpt-3.5-turbo';
+// const OPENAI_API_MODEL_NAME = 'gpt-3.5-turbo';
+const OPENAI_API_MODEL_NAME = 'gpt-4';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 // Entry point of the application
@@ -90,7 +91,7 @@ async function loadPdfDocuments() {
 // Split documents using the text splitter
 async function splitDocuments(docs) {
     const textSplitter = new RecursiveCharacterTextSplitter({
-        chunkSize: 500,
+        chunkSize: 8000,
         chunkOverlap: 0,
     });
 
