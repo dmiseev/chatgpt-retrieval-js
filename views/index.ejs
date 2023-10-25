@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="/styles.css">
+</head>
+<body>
+<div class="container">
+    <div class="left-side">
+        <h2>Folder Viewer</h2>
+        <ul id="file-list">
+            <!-- File list will be populated here -->
+        </ul>
+    </div>
+    <div class="right-side">
+        <h2>Chat UI</h2>
+        <div class="notice ai">Please note that the AI does not retain the memory of previous messages.</div>
+        <div class="chat-history" id="chat-history">
+            <!-- Chat history will be displayed here -->
+        </div>
+        <div class="chat-input-container">
+            <textarea id="chat-input" placeholder="Type your message"></textarea>
+            <button id="send-button">Send</button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    // Fetch and display the list of files in the folder
+    fetch('/listFiles')
+        .then((response) => response.json())
+        .then((data) => {
+            const fileList = document.getElementById('file-list');
+            data.forEach((file) => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${file.name} (${file.extension})`;
+                fileList.appendChild(listItem);
+            });
+        });
+</script>
+
+<script type="module">
+    // Function to fetch and display chat history
+    function fetchChatHistory() {
+        fetch('/chat')
+            .then((response) => response.json())
+            .then((data) => {
+                const chatHistory = document.getElementById('chat-history');
+                chatHistory.innerHTML = data
+                    .map((message) => {
+                        const role = message.startsWith('You:') ? 'you' : 'ai';
+                        return `<div class="chat-message ${role}">${message}</div>`;
+                    })
+                    .join('');
+
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+            });
+    }
+
+    // Function to send a new message
+    function sendChatMessage(message) {
+        fetch('/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ message }),
+        }).then(() => {
+            // After sending, add the message to the chat history immediately
+            // addMessageToChat(message);
+        });
+    }
+
+    // Function to add a new message to the chat history
+    function addMessageToChat(message) {
+        const chatHistory = document.getElementById('chat-history');
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('chat-message');
+
+        // Check if the message starts with 'You:' or 'AI:' to apply appropriate classes
+        if (message.startsWith('You:')) {
+            messageElement.classList.add('you');
+        }
+        if (message.startsWith('AI:')) {
+            messageElement.classList.add('ai');
+        }
+
+        // Use innerHTML to insert HTML content
+        messageElement.innerHTML = message;
+
+        // Append the message element to the chat history
+        chatHistory.appendChild(messageElement);
+
+        // Automatically scroll down to the bottom
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Get elements from the DOM
+        const chatInput = document.getElementById('chat-input');
+        const sendButton = document.getElementById('send-button');
+
+        const ws = new WebSocket('ws://localhost:3001');
+
+        ws.onmessage = (event) => {
+            const message = event.data;
+            addMessageToChat(message);
+        };
+
+        // Listen for the "Send" button click event
+        sendButton.addEventListener('click', () => {
+            const messageText = chatInput.value;
+            if (messageText) {
+                sendChatMessage(messageText);
+                chatInput.value = '';
+            }
+        });
+
+        // Listen for the "Enter" key press in the textarea
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault(); // Prevents a new line in the textarea
+                sendButton.click();
+            }
+        });
+
+        // Fetch and display chat history when the page loads
+        fetchChatHistory();
+    });
+</script>
+</body>
+</html>

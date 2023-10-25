@@ -21,10 +21,10 @@ const OPENAI_API_MODEL_NAME = 'gpt-4';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 // Entry point of the application
-async function main() {
-    const chain = await setupLLMChain();
-    await endlessLoop(chain);
-    console.log('End of the loop.');
+export async function main() {
+    return setupLLMChain();
+    // await endlessLoop(chain);
+    // console.log('End of the loop.');
 }
 
 // Load documents to LLM and create a retrieval chain
@@ -162,4 +162,4 @@ function scanForPDFs(directory) {
 }
 
 // Start the application
-await main();
+// await main();
