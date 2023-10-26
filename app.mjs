@@ -53,7 +53,8 @@ app.get('/listFiles', (req, res) => {
 });
 
 app.get('/', (req, res) => {
-    res.render('index');
+    const wsUrl = process.env.WS_URL;
+    res.render('index', { wsUrl });
 });
 
 app.listen(port, async () => {

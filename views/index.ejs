@@ -39,7 +39,8 @@
 </script>
 
 <script type="module">
-    // Function to fetch and display chat history
+    const wsUrl = '<%= wsUrl %>';
+
     function fetchChatHistory() {
         fetch('/chat')
             .then((response) => response.json())
@@ -99,7 +100,7 @@
         const chatInput = document.getElementById('chat-input');
         const sendButton = document.getElementById('send-button');
 
-        const ws = new WebSocket('ws://localhost:3001');
+        const ws = new WebSocket(wsUrl);
 
         ws.onmessage = (event) => {
             const message = event.data;
