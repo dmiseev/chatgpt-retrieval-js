@@ -13,6 +13,7 @@ import { TextLoader } from "langchain/document_loaders/fs/text";
 import { CSVLoader } from "langchain/document_loaders/fs/csv";
 import { NotionLoader } from "langchain/document_loaders/fs/notion";
 import { PDFLoader } from "langchain/document_loaders/fs/pdf";
+import {OpenAI} from "langchain/llms/openai";
 
 // Constants
 const DATA_DIR = "./data";
@@ -23,8 +24,24 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 // Entry point of the application
 async function main() {
     const chain = await setupLLMChain();
-    await endlessLoop(chain);
-    console.log('End of the loop.');
+    const response = await chain.call({
+        query: 'Act as a PHP developer. You have to write changelogs which describe your changes based on diff files. \n' +
+            'Facade class pattern is "*Facade.php".\n' +
+            'Transfer object definitions are stored in "*.transfer.xml" files.There are several type of changelogs:\n\n\n' +
+            '1a. You added a new method to facade class. Expected output is the following: "* Introduced \`FACADE::METHOD()\` facade method.\" Where FACADE is affected class name and METHOD is affected method name.\n' +
+            '1b. You removed an existing method from facade class. Expected output is the following: "* Removed \`FACADE::METHOD() facade method.\` Where FACADE is affected class name and METHOD is affected method name.\n' +
+            '2a. You added a new transfer object definition. Expected output is the following: "* Introduced \`TRANSFER\` transfer object." where TRANSFER is the name of the object from xml file. Ignore its properties for such case.\n' +
+            '2b. You deleted an existing transfer object definition. Expected output is the following: "* Removed \`TRANSFER\` transfer object." where TRANSFER is the name of the object from xml file. Ignore its properties for such case.\n' +
+            '2c. You added a new transfer object property to existing transfer object definition. Transfer object definitions are stored in ".transfer.xml" files. Expected output is the following: "* Introduced \`TRANSFER.PROPERTY\` transfer property." where TRANSFER is the name of the object and PROPERTY is a name of the property inside of object.\n' +
+            '2d. You deleted an existing transfer object property from existing transfer object definition. Transfer object definitions are stored in ".transfer.xml" files. Expected output is the following: "* Removed \`TRANSFER.PROPERTY\` transfer property." where TRANSFER is the name of the object and PROPERTY is a name of the property inside of object.\n' +
+            '3. In case a new transfer object definition is added you do not need to describe added properties, only added transfer object is mentioned.\n' +
+            '4. "*FacadeInterface.php" files should be skipped.\n\n' +
+            'Only diffs starting from "+" and "-" are relevant for you.\n' +
+            'You need to list all affected transfers and facade methods according to diffs.\n' +
+            'Combine all changelogs from all documents in the single snippet.'
+    });
+
+    console.log({response});
 }
 
 // Load documents to LLM and create a retrieval chain
@@ -38,14 +55,14 @@ async function setupLLMChain() {
 
     console.log("Splitting documents...");
     const splitDocs = await splitDocuments(docs);
-    console.log("Documents split.");
+    console.log(`Documents split to ${splitDocs.length} docs.`);
 
     console.log("Storing documents to memory vector store...");
     const vectorStore = await storeDocuments(splitDocs);
     console.log("Documents stored to memory vector store.");
 
     console.log("Creating retrieval chain...");
-    const model = new ChatOpenAI({
+    const model = new OpenAI({
         modelName: OPENAI_API_MODEL_NAME,
         openAIApiKey: OPENAI_API_KEY,
         temperature: 0,
@@ -91,7 +108,7 @@ async function loadPdfDocuments() {
 // Split documents using the text splitter
 async function splitDocuments(docs) {
     const textSplitter = new RecursiveCharacterTextSplitter({
-        chunkSize: 500,
+        chunkSize: 8000, // 8000
         chunkOverlap: 0,
     });
 
@@ -101,41 +118,6 @@ async function splitDocuments(docs) {
 // Store split documents in the memory vector store
 async function storeDocuments(splitDocs) {
     return MemoryVectorStore.fromDocuments(splitDocs, new OpenAIEmbeddings());
-}
-
-// Endless loop to take user input and get responses from GPT
-async function endlessLoop(chain) {
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
-    });
-
-    while (true) {
-        try {
-            const query = await new Promise((resolve) => {
-                rl.question('\x1b[33mEnter your question (or type "exit" to quit): \x1b[0m', (answer) => {
-                    resolve(answer.trim());
-                });
-            });
-
-            if (query.toLowerCase() === 'exit') {
-                console.log('\x1b[32mExiting the loop...\x1b[0m');
-                rl.close();
-                break;
-            }
-
-            console.log('\x1b[36mYou entered:\x1b[0m', `${query}`);
-
-            const response = await chain.call({
-                query: query
-            });
-
-            console.log('\x1b[32mAI answered:\x1b[0m', `${response.text}`);
-            console.log('\x1b[32mSource Document:\x1b[0m', `${response.sourceDocuments[0].metadata.source}`);
-        } catch (error) {
-            console.error('An error occurred:', error);
-        }
-    }
 }
 
 // Function to recursively scan a directory for PDF files
