@@ -10,7 +10,6 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 const port = process.env.PORT || 3000;
-// const wsPort = process.env.WS_PORT || 3001;
 const md = new MarkdownIt();
 
 const clients = [];
@@ -26,8 +25,11 @@ wss.on('connection', (ws) => {
     });
 });
 
-server.listen(port, () => {
+server.listen(port, async () => {
     console.log(`Server is running on port ${port}`);
+    LLMChain = await main();
+    console.log("All documents loaded successfully...");
+    sendMessage("AI: All documents loaded successfully.");
 });
 
 // Initialize an empty array to store chat history
@@ -56,13 +58,6 @@ app.get('/listFiles', (req, res) => {
 app.get('/', (req, res) => {
     const wsUrl = process.env.WS_URL;
     res.render('index', { wsUrl });
-});
-
-app.listen(port, async () => {
-    console.log(`Server is running on http://localhost:${port}`);
-    LLMChain = await main();
-    console.log("AI: All documents loaded successfully.");
-    sendMessage("AI: All documents loaded successfully.");
 });
 
 // Define a route to send and receive chat messages
