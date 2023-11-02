@@ -10,7 +10,7 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 const port = process.env.PORT || 3000;
-const wsPort = process.env.WS_PORT || 3001;
+// const wsPort = process.env.WS_PORT || 3001;
 const md = new MarkdownIt();
 
 const clients = [];
@@ -26,9 +26,9 @@ wss.on('connection', (ws) => {
     });
 });
 
-server.listen(wsPort, () => {
-    console.log(`Server is running on port ${wsPort}`);
-});
+// server.listen(wsPort, () => {
+//     console.log(`Server is running on port ${wsPort}`);
+// });
 
 // Initialize an empty array to store chat history
 const chatHistory = [];
