@@ -26,9 +26,9 @@ wss.on('connection', (ws) => {
     });
 });
 
-// server.listen(wsPort, () => {
-//     console.log(`Server is running on port ${wsPort}`);
-// });
+server.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+});
 
 // Initialize an empty array to store chat history
 const chatHistory = [];
