@@ -9,7 +9,8 @@ import MarkdownIt from 'markdown-it';
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
-const port = 3000;
+const port = process.env.PORT || 3000;
+const wsPort = process.env.WS_PORT || 3001;
 const md = new MarkdownIt();
 
 const clients = [];
@@ -25,8 +26,8 @@ wss.on('connection', (ws) => {
     });
 });
 
-server.listen(3001, () => {
-    console.log('Server is running on port 3001');
+server.listen(wsPort, () => {
+    console.log(`Server is running on port ${wsPort}`);
 });
 
 // Initialize an empty array to store chat history
@@ -60,6 +61,7 @@ app.get('/', (req, res) => {
 app.listen(port, async () => {
     console.log(`Server is running on http://localhost:${port}`);
     LLMChain = await main();
+    console.log("AI: All documents loaded successfully.");
     sendMessage("AI: All documents loaded successfully.");
 });
 
